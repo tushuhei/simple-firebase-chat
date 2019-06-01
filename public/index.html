@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script defer src="/__/firebase/6.1.0/firebase-app.js"></script>
+  <script defer src="/__/firebase/6.1.0/firebase-firestore.js"></script>
+  <script defer src="/__/firebase/init.js"></script>
+</head>
+
+<body>
+  Hello world
+  <ul class="message-list"></ul>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const messageListElement = document.querySelector('.message-list');
+      const db = firebase.firestore();
+      db.collection('messages').get().then((snapshot) => {
+        snapshot.forEach((doc) => {
+          let data = doc.data();
+          let messageElement = document.createElement('li');
+          messageElement.textContent = data.text;
+          document.body.appendChild(messageElement);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
