@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script defer src="/__/firebase/6.1.0/firebase-app.js"></script>
   <script defer src="/__/firebase/6.1.0/firebase-firestore.js"></script>
+  <script defer src="/__/firebase/6.1.0/firebase-auth.js"></script>
   <script defer src="/__/firebase/init.js"></script>
   <style>
       body {
@@ -38,21 +39,26 @@
       .message__text {
           margin: 5px 0;
       }
+      .hidden {
+          display: none;
+      }
   </style>
 </head>
 
 <body>
+  <button class="signin-button">Sign in</button>
   <p>Hello world</p>
-  <input type="text" placeholder="say something" class="post-field">
-  <button class="submit-button">Submit</button>
+  <input type="text" placeholder="say something" class="post-field hidden">
+  <button class="submit-button hidden">Submit</button>
   <ul class="message-list"></ul>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const messageListElement = document.querySelector('.message-list');
       const postFieldElement = document.querySelector('.post-field');
       const submitButtonElement = document.querySelector('.submit-button');
+      const signinButtonElement = document.querySelector('.signin-button');
       const db = firebase.firestore();
-      db.collection('messages').onSnapshot((snapshot) => {
+      db.collection('messages').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
         messageListElement.innerHTML = '';
         snapshot.forEach((doc) => {
           const data = doc.data();
@@ -79,14 +85,35 @@
       });
 
       submitButtonElement.addEventListener('click', (e) => {
-        db.collection('messages').add({
-          name: 'unknown',
-          text: postFieldElement.value,
-          profilePicUrl: 'https://via.placeholder.com/120',
-        });
-        postFieldElement.value = '';
-      })
+        const user = firebase.auth().currentUser;
+        if (user) {
+          db.collection('messages').add({
+            name: user.displayName,
+            text: postFieldElement.value,
+            profilePicUrl: user.photoURL || 'https://via.placeholder.com/120',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          postFieldElement.value = '';
+        }
+      });
+
+      signinButtonElement.addEventListener('click', (e) => {
+        let provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider);
+      });
+
+      const authStateObserver = (user) => {
+        if (user) {
+          signinButtonElement.classList.add('hidden');
+          postFieldElement.classList.remove('hidden');
+          submitButtonElement.classList.remove('hidden');            
+        }
+      }
+
+      firebase.auth().onAuthStateChanged(authStateObserver);
     });
+
+
   </script>
 </body>
 </html>
