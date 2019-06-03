@@ -7,6 +7,7 @@
   <script defer src="/__/firebase/6.1.0/firebase-app.js"></script>
   <script defer src="/__/firebase/6.1.0/firebase-firestore.js"></script>
   <script defer src="/__/firebase/6.1.0/firebase-auth.js"></script>
+  <script defer src="/__/firebase/6.1.0/firebase-storage.js"></script>
   <script defer src="/__/firebase/init.js"></script>
   <style>
       body {
@@ -39,6 +40,9 @@
       .message__text {
           margin: 5px 0;
       }
+      .message__image {
+          max-width: 320px;
+      }
       .hidden {
           display: none;
       }
@@ -50,6 +54,9 @@
   <p>Hello world</p>
   <input type="text" placeholder="say something" class="post-field hidden">
   <button class="submit-button hidden">Submit</button>
+  <div>
+    <input type="file" accept="image/*" capture="camera" class="image-field hidden">
+  </div>
   <ul class="message-list"></ul>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -57,6 +64,7 @@
       const postFieldElement = document.querySelector('.post-field');
       const submitButtonElement = document.querySelector('.submit-button');
       const signinButtonElement = document.querySelector('.signin-button');
+      const imageFieldElement = document.querySelector('.image-field');
       const db = firebase.firestore();
       db.collection('messages').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
         messageListElement.innerHTML = '';
@@ -80,6 +88,13 @@
           textElement.className = 'message__text';
           messageElement.appendChild(textElement);
 
+          if (data.imageUrl) {
+            const imageElement = document.createElement('img');
+            imageElement.src = data.imageUrl;
+            imageElement.className = 'message__image';
+            messageElement.appendChild(imageElement);
+          }
+
           messageListElement.appendChild(messageElement);
         });
       });
@@ -87,12 +102,13 @@
       submitButtonElement.addEventListener('click', (e) => {
         const user = firebase.auth().currentUser;
         if (user) {
-          db.collection('messages').add({
+          const messageAddPromise = db.collection('messages').add({
             name: user.displayName,
             text: postFieldElement.value,
             profilePicUrl: user.photoURL || 'https://via.placeholder.com/120',
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           });
+          console.log(messageAddPromise);
           postFieldElement.value = '';
         }
       });
@@ -106,11 +122,38 @@
         if (user) {
           signinButtonElement.classList.add('hidden');
           postFieldElement.classList.remove('hidden');
-          submitButtonElement.classList.remove('hidden');            
+          submitButtonElement.classList.remove('hidden');
+          imageFieldElement.classList.remove('hidden');
         }
       }
 
       firebase.auth().onAuthStateChanged(authStateObserver);
+
+      imageFieldElement.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        console.log(file);
+        if (!file.type.match('image.*')) {
+          alert('You can only share images');
+          return;
+        };
+        const user = firebase.auth().currentUser;
+        firebase.firestore().collection('messages').add({
+          name: user.displayName,
+          profilePicUrl:  user.photoURL || 'https://via.placeholder.com/120',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          imageUrl: 'https://media.giphy.com/media/sSgvbe1m3n93G/giphy.gif',
+        }).then((messageRef) => {
+          const filePath = `${user.uid}/${messageRef.id}/${file.name}`;
+          return firebase.storage().ref(filePath).put(file).then((fileSnapshot) => {
+            return fileSnapshot.ref.getDownloadURL().then((url) => {
+              return messageRef.update({
+                imageUrl: url,
+                storageUri: fileSnapshot.metadata.fullPath,
+              });
+            });
+          });
+        });
+      });
     });
 
 
