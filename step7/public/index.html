@@ -69,8 +69,9 @@
       const signinButtonElement = document.querySelector('.signin-button');
       const imageFieldElement = document.querySelector('.image-field');
       const inputCanvasElement = document.querySelector('.input-canvas');
-      inputCanvasElement.width = 224;
-      inputCanvasElement.height = 224;
+      const imageSize = 224;
+      inputCanvasElement.width = imageSize;
+      inputCanvasElement.height = imageSize;
       const db = firebase.firestore();
       db.collection('messages').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
         messageListElement.innerHTML = '';
@@ -172,11 +173,11 @@
               if (img.width > img.height) {
                 ctx.drawImage(img,
                  img.width / 2 - img.height / 2, 0, img.height, img.height,
-                 0, 0, 224, 224);
+                 0, 0, imageSize, imageSize);
               } else {
                 ctx.drawImage(img,
                  0, img.height / 2 - img.width / 2, img.width, img.width,
-                 0, 0, 224, 224);
+                 0, 0, imageSize, imageSize);
               }
               predict(inputCanvasElement, messageRef);
             }
@@ -191,7 +192,7 @@
         const data = tf.browser.fromPixels(element).toFloat();
         const offset = tf.scalar(127.5);
         const normalized = data.sub(offset).div(offset);
-        const batched = normalized.reshape([1, 224, 224, 3]);
+        const batched = normalized.reshape([1, imageSize, imageSize, 3]);
         const result = model.predict(batched);
         const argmaxIdx = result.argMax(1).dataSync()[0];
         messageRef.update({text: `#${classes[argmaxIdx]}`});
