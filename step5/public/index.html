@@ -7,9 +7,7 @@
   <script defer src="/__/firebase/6.1.0/firebase-app.js"></script>
   <script defer src="/__/firebase/6.1.0/firebase-firestore.js"></script>
   <script defer src="/__/firebase/6.1.0/firebase-auth.js"></script>
-  <script defer src="/__/firebase/6.1.0/firebase-storage.js"></script>
   <script defer src="/__/firebase/init.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
   <style>
       body {
           background: #eee;
@@ -41,9 +39,6 @@
       .message__text {
           margin: 5px 0;
       }
-      .message__image {
-          max-width: 320px;
-      }
       .hidden {
           display: none;
       }
@@ -55,22 +50,13 @@
   <p>Hello world</p>
   <input type="text" placeholder="say something" class="post-field hidden">
   <button class="submit-button hidden">Submit</button>
-  <div>
-    <input type="file" accept="image/*" capture="camera" class="image-field hidden">
-  </div>
-  <canvas class="input-canvas"></canvas>
   <ul class="message-list"></ul>
-  <script src="./classes.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const messageListElement = document.querySelector('.message-list');
       const postFieldElement = document.querySelector('.post-field');
       const submitButtonElement = document.querySelector('.submit-button');
       const signinButtonElement = document.querySelector('.signin-button');
-      const imageFieldElement = document.querySelector('.image-field');
-      const inputCanvasElement = document.querySelector('.input-canvas');
-      inputCanvasElement.width = 224;
-      inputCanvasElement.height = 224;
       const db = firebase.firestore();
       db.collection('messages').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
         messageListElement.innerHTML = '';
@@ -93,13 +79,6 @@
           textElement.textContent = data.text;
           textElement.className = 'message__text';
           messageElement.appendChild(textElement);
-
-          if (data.imageUrl) {
-            const imageElement = document.createElement('img');
-            imageElement.src = data.imageUrl;
-            imageElement.className = 'message__image';
-            messageElement.appendChild(imageElement);
-          }
 
           messageListElement.appendChild(messageElement);
         });
@@ -127,75 +106,11 @@
         if (user) {
           signinButtonElement.classList.add('hidden');
           postFieldElement.classList.remove('hidden');
-          submitButtonElement.classList.remove('hidden');
-          imageFieldElement.classList.remove('hidden');
+          submitButtonElement.classList.remove('hidden');            
         }
       }
 
       firebase.auth().onAuthStateChanged(authStateObserver);
-
-      imageFieldElement.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file.type.match('image.*')) {
-          alert('You can only share images');
-          return;
-        };
-        const user = firebase.auth().currentUser;
-        firebase.firestore().collection('messages').add({
-          name: user.displayName,
-          profilePicUrl:  user.photoURL || 'https://via.placeholder.com/120',
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          imageUrl: 'https://media.giphy.com/media/sSgvbe1m3n93G/giphy.gif',
-        }).then((messageRef) => {
-          const filePath = `${user.uid}/${messageRef.id}/${file.name}`;
-          updateTag(file, messageRef);
-          return firebase.storage().ref(filePath).put(file).then((fileSnapshot) => {
-            return fileSnapshot.ref.getDownloadURL().then((url) => {
-              return messageRef.update({
-                imageUrl: url,
-                storageUri: fileSnapshot.metadata.fullPath,
-              });
-            });
-          });
-        });
-      });
-
-      const updateTag = (file, messageRef) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-	    reader.onload = function(e) {
-          if (e.target.readyState == FileReader.DONE) {
-            const img = new Image();
-            const ctx = inputCanvasElement.getContext('2d');
-	        img.src = e.target.result;
-            img.onload = () => {
-              if (img.width > img.height) {
-                ctx.drawImage(img,
-                 img.width / 2 - img.height / 2, 0, img.height, img.height,
-                 0, 0, 224, 224);
-              } else {
-                ctx.drawImage(img,
-                 0, img.height / 2 - img.width / 2, img.width, img.width,
-                 0, 0, 224, 224);
-              }
-              predict(inputCanvasElement, messageRef);
-            }
-		  }
-	    }
-      };
-
-      const predict = async (element, messageRef) => {
-        const model = await tf.loadGraphModel(
-                'https://tfhub.dev/google/imagenet/mobilenet_v2_140_224/classification/2',
-                {fromTFHub: true});
-        const data = tf.browser.fromPixels(element).toFloat();
-        const offset = tf.scalar(127.5);
-        const normalized = data.sub(offset).div(offset);
-        const batched = normalized.reshape([1, 224, 224, 3]);
-        const result = model.predict(batched);
-        const argmaxIdx = result.argMax(1).dataSync()[0];
-        messageRef.update({text: `#${classes[argmaxIdx]}`});
-      };
     });
   </script>
 </body>

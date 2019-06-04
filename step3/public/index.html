@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script defer src="/__/firebase/6.1.0/firebase-app.js"></script>
+  <script defer src="/__/firebase/6.1.0/firebase-firestore.js"></script>
+  <script defer src="/__/firebase/init.js"></script>
+  <style>
+      body {
+          background: #eee;
+          font-family: sans-serif;
+      }
+      .message {
+          background: #fff;
+          list-style: none;
+          margin: 10px 0;
+          overflow: hidden;
+          padding: 5px;
+          box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+          border-radius: 2px;
+      }
+      .message__pic {
+          width: 60px;
+          height: 60px;
+          object-fit: cover;
+          object-position: top;
+          float: left;
+          margin-right: 5px;
+      }
+      .message__name {
+          font-weight: bold;
+      }
+      .message__text {
+          margin: 5px 0;
+      }
+  </style>
+</head>
+
+<body>
+  <p>Hello world</p>
+  <ul class="message-list"></ul>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const messageListElement = document.querySelector('.message-list');
+      const db = firebase.firestore();
+      db.collection('messages').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
+        messageListElement.innerHTML = '';
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const messageElement = document.createElement('li');
+          messageElement.className = 'message';
+
+          const profileImageElement = document.createElement('img');
+          profileImageElement.src = data.profilePicUrl;
+          profileImageElement.className = 'message__pic';
+          messageElement.appendChild(profileImageElement);
+
+          const nameElement = document.createElement('span');
+          nameElement.textContent = data.name;
+          nameElement.className = 'message__name';
+          messageElement.appendChild(nameElement);
+
+          const textElement = document.createElement('p');
+          textElement.textContent = data.text;
+          textElement.className = 'message__text';
+          messageElement.appendChild(textElement);
+
+          messageListElement.appendChild(messageElement);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+
