@@ -133,7 +133,11 @@
         if (!file.type.match('image.*')) {
           alert('You can only share images');
           return;
-        };
+        }
+        if (file.size > 3 * 1024 * 1024) {
+          alert('The image file is too big (over 3MB)');
+          return;
+        }
         const user = firebase.auth().currentUser;
         firebase.firestore().collection('messages').add({
           name: user.displayName,
