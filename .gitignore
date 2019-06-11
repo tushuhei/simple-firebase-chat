@@ -65,3 +65,5 @@ node_modules/
 .env
 
 config.js
+
+.firebaserc
