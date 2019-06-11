@@ -8,4 +8,4 @@ Values can be random.
 
 After editing, spin the local development server by running `firebase serve -p 8080` and navigate to the preview
 by accessing `http://localhost:8080`.
-You should see the saved messages in the DevTool console.
+You should see the texts from the saved messages on the screen.
